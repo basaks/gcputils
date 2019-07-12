@@ -28,7 +28,8 @@ class GCloud:
         self.put(local, remote, is_dir)
         Path(local).unlink()
 
-    def __exec(self, p1: str, p2: str, is_dir: bool) -> None:
+    @staticmethod
+    def __exec(p1: str, p2: str, is_dir: bool) -> None:
         if not Path(p2).exists():
             Path(p2).mkdir(exist_ok=True, parents=True)
         recursive = '-r ' if is_dir else ''
