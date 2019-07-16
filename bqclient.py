@@ -85,6 +85,7 @@ class BQClient:
         df.to_parquet(tmp_parquet, index=False)
 
         self.parquet_to_bq(tmp_parquet, table_reference, write_disposition)
+        tmp_parquet.unlink()
 
     def parquet_to_bq(self, parquet_df: Union[str, Path],
                       table_reference: TableReference,
@@ -109,4 +110,3 @@ class BQClient:
         load_job.result()  # Waits for table load to complete.
         assert load_job.state == "DONE"  # safety
         log.info(f"Upload Job finished.")
-        parquet_df.unlink()
