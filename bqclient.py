@@ -1,3 +1,4 @@
+from typing import Union
 import logging
 from pathlib import Path
 import pandas as pd
@@ -83,17 +84,29 @@ class BQClient:
         tmp_parquet = Path('tmp.parquet')
         df.to_parquet(tmp_parquet, index=False)
 
+        self.parquet_to_bq(tmp_parquet, table_reference, write_disposition)
+
+    def parquet_to_bq(self, parquet_df: Union[str, Path],
+                      table_reference: TableReference,
+                      write_disposition: str = WriteDisposition.WRITE_EMPTY) \
+            -> None:
+        """
+        Upload parquet data frame on disc into BQ
+        """
+
+        # cast str to path
+        if isinstance(parquet_df, str):
+            parquet_df = Path(parquet_df)
+
         job_config = LoadJobConfig(
             source_format=bigquery.SourceFormat.PARQUET,
             write_disposition=write_disposition
         )
-
-        with open(tmp_parquet.as_posix(), 'rb') as f:
+        with open(parquet_df.as_posix(), 'rb') as f:
             load_job = self.client.load_table_from_file(
                 f, table_reference, job_config=job_config)
-
         log.info(f"Starting  upload job job id: {load_job.job_id}")
         load_job.result()  # Waits for table load to complete.
         assert load_job.state == "DONE"  # safety
         log.info(f"Upload Job finished.")
-        tmp_parquet.unlink()
+        parquet_df.unlink()
