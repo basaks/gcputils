@@ -102,7 +102,7 @@ class BQClient:
         job_config = LoadJobConfig(
             source_format=bigquery.SourceFormat.PARQUET,
             write_disposition=write_disposition
-        )
+            )
         with open(parquet_df.as_posix(), 'rb') as f:
             load_job = self.client.load_table_from_file(
                 f, table_reference, job_config=job_config)
@@ -110,3 +110,26 @@ class BQClient:
         load_job.result()  # Waits for table load to complete.
         assert load_job.state == "DONE"  # safety
         log.info(f"Upload Job finished.")
+
+    def load_parquets_from_uri(
+            self, uri: str,
+            table_reference: TableReference,
+            write_disposition: str = WriteDisposition.WRITE_EMPTY
+            ) -> None:
+        """
+        use this function to upload multiple parquet files into BQ table
+        uri: Google Storage directory containing one or more parquet files
+        """
+        job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.PARQUET,
+            write_disposition=write_disposition
+            )
+        load_job = self.client.load_table_from_uri(
+            uri + '/*.parquet', table_reference, job_config=job_config
+        )  # API request
+        log.info(f"Starting job {load_job.job_id}")
+        load_job.result()  # Waits for table load to complete.
+        log.info(f"Job {load_job.job_id} finished.")
+        destination_table = self.client.get_table(table_reference)
+        assert load_job.state == "DONE"  # safety
+        log.info("Loaded {} rows.".format(destination_table.num_rows))
