@@ -58,3 +58,9 @@ class GCloud:
         blob = self.bucket.blob(remote)
         blob.upload_from_string(text, remote)
         log.info(f'Wrote input string to {self.bucket_name}{remote}.')
+
+    def rm(self, remote):
+        """Deletes a blob from the bucket."""
+        blob = self.bucket.blob(remote)
+        blob.delete()
+        log.info(f'File {remote} deleted.')
