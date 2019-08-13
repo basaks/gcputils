@@ -1,3 +1,4 @@
+from typing import Iterator
 import logging
 import subprocess
 from datetime import datetime
@@ -10,18 +11,18 @@ log = logging.getLogger(__name__)
 class GCloud:
 
     def __init__(self, bucket_name: str) -> None:
-        client = storage.Client()
+        self.client = storage.Client()
         # https://console.cloud.google.com/storage/browser/[bucket-id]/
-        self.bucket_name = bucket_name + '/'
-        self.bucket = client.get_bucket(bucket_name)
+        self.bucket_name = bucket_name
+        self.bucket = self.client.get_bucket(bucket_name)
 
     def put(self, local: str, remote: str, is_dir: bool = False) -> None:
         if is_dir:
-            self.__exec(local, f'gs://{self.bucket_name}{remote}', is_dir)
+            self.__exec(local, f'gs://{self.bucket_name}/{remote}', is_dir)
         else:
             blob = self.bucket.blob(remote)
             blob.upload_from_filename(local)
-            log.info(f'File {local} uploaded to {self.bucket_name}{remote}.')
+            log.info(f'File {local} uploaded to {self.bucket_name}/{remote}.')
 
     def mv(self, local: str, remote: str, is_dir: bool = False) -> None:
         """put and then remove"""
@@ -41,11 +42,11 @@ class GCloud:
     def get(self, remote: str, local: str, is_dir: bool = False) -> None:
 
         if is_dir:
-            self.__exec(f'gs://{self.bucket_name}{remote}', local, is_dir)
+            self.__exec(f'gs://{self.bucket_name}/{remote}', local, is_dir)
         else:
             blob = self.bucket.blob(remote)
             blob.download_to_filename(local)
-            log.info(f'File {local} download from {self.bucket_name}{remote}.')
+            log.info(f'File {local} download from {self.bucket_name}/{remote}.')
 
     def exists(self, remote: str) -> bool:
         blob = self.bucket.blob(remote)
@@ -57,10 +58,20 @@ class GCloud:
     def put_text(self, text: str, remote: str) -> None:
         blob = self.bucket.blob(remote)
         blob.upload_from_string(text, remote)
-        log.info(f'Wrote input string to {self.bucket_name}{remote}.')
+        log.info(f'Wrote input string to {self.bucket_name}/{remote}.')
 
     def rm(self, remote):
         """Deletes a blob from the bucket."""
         blob = self.bucket.blob(remote)
         blob.delete()
         log.info(f'File {remote} deleted.')
+
+    def ls(self, remote: str, suffix: str = None) -> Iterator[str]:
+        """
+        Impersonate a remote directory listing
+        """
+        blobs = self.bucket.list_blobs(prefix=remote)
+        if suffix is None:
+            return (b.name for b in blobs)
+        else:
+            return (b.name for b in blobs if b.name.endswith(suffix))
