@@ -70,6 +70,13 @@ class BQClient:
         log.info(f"Sql job complete: {download_job.job_id}")
         return df
 
+    def bq_to_df(self, table_ref: TableReference) -> pd.DataFrame:
+        """
+        Return whole table from BQ in a dataframe
+        """
+        return self.client.list_rows(table_ref).to_dataframe(
+            bqstorage_client=self.storage_client)
+
     def df_to_bq(self, df: pd.DataFrame, table_reference: TableReference,
                  write_disposition: str = WriteDisposition.WRITE_EMPTY) \
             -> None:
